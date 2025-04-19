@@ -1,20 +1,34 @@
 import asyncio
+import os
+
+BASE_DIR = os.path.dirname(__file__)  # thư mục common
+
+signal_file = os.path.join(BASE_DIR, "signal.txt")
+input_file = os.path.join(BASE_DIR, "input.txt")
+if not os.path.exists(signal_file):
+    open(signal_file, "w").close()
+
+if not os.path.exists(input_file):
+    open(input_file, "w").close()
+
 
 async def send(data):
-    with open("signal.txt", "w") as f:
+    with open(signal_file, "w") as f:
         f.write(data.sdp)
 
 async def receive():
     while True:
         try:
-            with open("signal.txt", "r") as f:
+            with open(signal_file, "r") as f:
                 sdp = f.read()
                 if sdp:
+                    print("[SIGNAL] Received SDP offer.")
                     return sdp
-        except:
-            await asyncio.sleep(0.1)
+        except FileNotFoundError:
+            print("[SIGNAL] signal.txt not found, waiting...")
+        await asyncio.sleep(0.1)
 
 
 def send_input(input_data):
-    with open("input.txt", "w") as f:
+    with open(input_file, "w") as f:
         f.write(input_data)

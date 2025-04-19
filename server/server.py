@@ -1,10 +1,17 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import cv2
 import numpy as np
 import pyautogui
-from aiortc import VideoStreamTrack, RTCPeerConnection
-from aiortc import RTCSessionDescription
+from aiortc import VideoStreamTrack, RTCPeerConnection, RTCSessionDescription
 import asyncio
 import av
+from common import signaling
+# ...
+
+
 
 class ScreenTrack(VideoStreamTrack):
     async def recv(self):
@@ -42,9 +49,9 @@ def handle_remote_input(input_data):
 
 def receive_input():
     try:
-        with open("input.txt", "r") as f:
+        with open(signaling.input_file, "r") as f:
             data = f.read()
-        with open("input.txt", "w") as f:
+        with open(signaling.input_file, "w") as f:
             f.write("")
         return data
     except:
@@ -52,7 +59,7 @@ def receive_input():
 
 
 
+
 if __name__ == "__main__":
-    from common import signaling
     asyncio.run(run_server())
 
