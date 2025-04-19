@@ -10,6 +10,8 @@ import mouse
 
 async def run_client():
     pc = RTCPeerConnection()
+
+    pc.createDataChannel("chat")
     offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
     await signaling.send(pc.localDescription)
