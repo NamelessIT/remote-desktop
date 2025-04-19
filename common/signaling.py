@@ -5,6 +5,8 @@ BASE_DIR = os.path.dirname(__file__)  # thư mục common
 
 signal_file = os.path.join(BASE_DIR, "signal.txt")
 input_file = os.path.join(BASE_DIR, "input.txt")
+
+# Tạo file nếu chưa tồn tại
 if not os.path.exists(signal_file):
     open(signal_file, "w").close()
 
@@ -14,7 +16,12 @@ if not os.path.exists(input_file):
 
 async def send(data):
     with open(signal_file, "w") as f:
-        f.write(data.sdp)
+        # Nếu là RTCSessionDescription thì lấy sdp, còn lại ghi trực tiếp
+        if hasattr(data, 'sdp'):
+            f.write(data.sdp)
+        else:
+            f.write(data)
+
 
 async def receive():
     while True:

@@ -9,16 +9,21 @@ from aiortc import VideoStreamTrack, RTCPeerConnection, RTCSessionDescription
 import asyncio
 import av
 from common import signaling
-# ...
-
-
 
 class ScreenTrack(VideoStreamTrack):
+    def __init__(self):
+        super().__init__()
+        self.width, self.height = pyautogui.size()
+
     async def recv(self):
+        pts, time_base = await self.next_timestamp()
+
         frame = pyautogui.screenshot()
         frame = cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR)
         av_frame = av.VideoFrame.from_ndarray(frame, format="bgr24")
-        av_frame.pts = None
+        av_frame.pts = pts
+        av_frame.time_base = time_base
+
         await asyncio.sleep(1/30)  # 30 FPS
         return av_frame
 
@@ -26,21 +31,25 @@ async def run_server():
     pc = RTCPeerConnection()
     pc.addTrack(ScreenTrack())
 
+    print("[SERVER] Waiting for offer from client...")
     offer_sdp = await signaling.receive()
     offer = RTCSessionDescription(sdp=offer_sdp, type="offer")
     await pc.setRemoteDescription(offer)
+
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
-    await signaling.send(pc.localDescription)
 
-    print("Server is running...")
+    # Gửi đúng kiểu sdp string về client
+    await signaling.send(pc.localDescription.sdp)
+
+    print("[SERVER] Connection established, streaming...")
+
     while True:
         input_data = receive_input()
         if input_data:
             handle_remote_input(input_data)
         await asyncio.sleep(0.01)
 
-    
 def handle_remote_input(input_data):
     if input_data == "w":
         pyautogui.press('w')
@@ -53,13 +62,9 @@ def receive_input():
             data = f.read()
         with open(signaling.input_file, "w") as f:
             f.write("")
-        return data
+        return data.strip()
     except:
         return ""
 
-
-
-
 if __name__ == "__main__":
     asyncio.run(run_server())
-
