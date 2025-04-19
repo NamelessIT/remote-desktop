@@ -1,4 +1,4 @@
 1. Dowload requirements    
     ```
-    pip install -r requirements.txt
+    pip install -r requirement.txt
     ``
