@@ -39,8 +39,13 @@ async def run_server():
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 
-    # Gửi đúng kiểu sdp string về client
-    await signaling.send(pc.localDescription.sdp)
+    # Chỉnh sửa SDP cho đúng chuẩn answer
+    answer_sdp = pc.localDescription.sdp
+    answer_sdp = answer_sdp.replace("a=setup:actpass", "a=setup:passive")
+
+    # Gửi sdp string về client
+    await signaling.send(answer_sdp)
+
 
     print("[SERVER] Connection established, streaming...")
 
