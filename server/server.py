@@ -29,32 +29,22 @@ class ScreenTrack(VideoStreamTrack):
 
 async def run_server():
     pc = RTCPeerConnection()
-    pc.addTrack(ScreenTrack())
+
+    @pc.on("datachannel")
+    def on_datachannel(channel):
+        print(f"[SERVER] DataChannel {channel.label} received")
 
     offer_sdp = await signaling.receive()
     offer = RTCSessionDescription(sdp=offer_sdp, type="offer")
     await pc.setRemoteDescription(offer)
+
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 
-    # Lấy SDP string từ localDescription
-    answer_sdp = pc.localDescription.sdp
+    await signaling.send(pc.localDescription)
 
-    # Fix đoạn setup actpass thành passive
-    if "a=setup:actpass" in answer_sdp:
-        answer_sdp = answer_sdp.replace("a=setup:actpass", "a=setup:passive")
-        print("[SIGNAL] Patched DTLS setup attribute to 'passive'")
-    else:
-        print("[SIGNAL] Warning: setup attribute not found in SDP!")
+    await asyncio.sleep(99999)
 
-    await signaling.send(answer_sdp)
-
-    print("Server is running...")
-    while True:
-        input_data = receive_input()
-        if input_data:
-            handle_remote_input(input_data)
-        await asyncio.sleep(0.01)
 
 
 def handle_remote_input(input_data):
