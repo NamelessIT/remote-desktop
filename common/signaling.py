@@ -16,27 +16,22 @@ if not os.path.exists(input_file):
 
 async def send(data):
     with open(signal_file, "w") as f:
-        # Nếu là RTCSessionDescription thì lấy sdp, còn lại ghi trực tiếp
         if hasattr(data, 'sdp'):
+            print(f"[SIGNAL] Sending SDP {data.type}")
             f.write(data.sdp)
         else:
             f.write(data)
 
-
 async def receive():
     while True:
-        try:
-            with open(signal_file, "r") as f:
-                sdp = f.read()
-                if sdp:
-                    print("[SIGNAL] Received SDP offer/answer.")
-                    # Xóa file sau khi đọc để tránh lặp lại
-                    with open(signal_file, "w") as fw:
-                        fw.write("")
-                    return sdp
-        except FileNotFoundError:
-            print("[SIGNAL] signal.txt not found, waiting...")
+        with open(signal_file, "r") as f:
+            sdp = f.read()
+            if sdp:
+                print("[SIGNAL] Received SDP:")
+                print(sdp)
+                return sdp
         await asyncio.sleep(0.1)
+
 
 
 
