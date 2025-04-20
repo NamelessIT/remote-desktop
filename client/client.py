@@ -21,8 +21,11 @@ async def run_client():
     await signaling.send(pc.localDescription)
 
     answer_sdp = await signaling.receive()
+    print("[SIGNAL] Received Answer SDP:\n", answer_sdp)  # debug print
+
     answer = RTCSessionDescription(sdp=answer_sdp, type="answer")
     await pc.setRemoteDescription(answer)
+
 
 
     @pc.on("track")

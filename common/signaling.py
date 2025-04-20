@@ -29,11 +29,15 @@ async def receive():
             with open(signal_file, "r") as f:
                 sdp = f.read()
                 if sdp:
-                    print("[SIGNAL] Received SDP offer.")
+                    print("[SIGNAL] Received SDP offer/answer.")
+                    # Xóa file sau khi đọc để tránh lặp lại
+                    with open(signal_file, "w") as fw:
+                        fw.write("")
                     return sdp
         except FileNotFoundError:
             print("[SIGNAL] signal.txt not found, waiting...")
         await asyncio.sleep(0.1)
+
 
 
 def send_input(input_data):
