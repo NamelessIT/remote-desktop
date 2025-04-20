@@ -1,3 +1,4 @@
+# client.py
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -6,7 +7,6 @@ import cv2
 from aiortc import RTCPeerConnection
 import asyncio
 import pyautogui
-from aiortc.contrib.media import MediaPlayer
 from aiortc import RTCSessionDescription
 from common import signaling
 import keyboard
@@ -14,19 +14,17 @@ import mouse
 
 async def run_client():
     pc = RTCPeerConnection()
+    channel = pc.createDataChannel("chat")
 
-    pc.createDataChannel("chat")
     offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
     await signaling.send(pc.localDescription)
 
     answer_sdp = await signaling.receive()
-    print("[SIGNAL] Received Answer SDP:\n", answer_sdp)  # debug print
+    print("[SIGNAL] Received Answer SDP:\n", answer_sdp)
 
     answer = RTCSessionDescription(sdp=answer_sdp, type="answer")
     await pc.setRemoteDescription(answer)
-
-
 
     @pc.on("track")
     def on_track(track):
@@ -41,23 +39,17 @@ async def run_client():
                 cv2.destroyAllWindows()
             asyncio.create_task(recv_video())
 
-    await asyncio.sleep(99999)
+    await handle_input(channel)
 
-
-async def handle_input():
+async def handle_input(channel):
     while True:
         if keyboard.is_pressed("w"):
-            signaling.send_input("w")
+            channel.send("w")
         if mouse.is_pressed(button='left'):
-            signaling.send_input("left_click")
+            channel.send("left_click")
         await asyncio.sleep(0.01)
 
-
-
 async def main():
-    await asyncio.gather(
-        run_client(),
-        handle_input()
-    )
+    await run_client()
 
 asyncio.run(main())

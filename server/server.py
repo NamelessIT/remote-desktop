@@ -1,3 +1,4 @@
+# server.py
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -34,34 +35,62 @@ async def run_server():
     def on_datachannel(channel):
         print(f"[SERVER] DataChannel {channel.label} received")
 
+        @channel.on("message")
+        def on_message(message):
+            handle_remote_input(message)
+
     offer_sdp = await signaling.receive()
-    offer = RTCSessionDescription(sdp=offer_sdp, type="offer")
+
+    # Fix SDP nếu thiếu a=sendrecv
+    sdp_lines = offer_sdp.splitlines()
+    has_video = any(line.startswith("m=video") for line in sdp_lines)
+    new_sdp_lines = []
+    in_application = False
+
+    for line in sdp_lines:
+        new_sdp_lines.append(line)
+        if line.startswith("m=application"):
+            in_application = True
+        elif in_application and line.startswith("a="):
+            if "sendrecv" not in line and not any(d in line for d in ["sendonly", "recvonly", "inactive"]):
+                new_sdp_lines.append("a=sendrecv")
+                in_application = False
+        elif in_application and line.strip() == "":
+            new_sdp_lines.append("a=sendrecv")
+            in_application = False
+
+    if in_application:
+        new_sdp_lines.append("a=sendrecv")
+
+    fixed_offer_sdp = "\n".join(new_sdp_lines)
+
+    offer = RTCSessionDescription(sdp=fixed_offer_sdp, type="offer")
     await pc.setRemoteDescription(offer)
 
+    if has_video:
+        pc.addTrack(ScreenTrack())
+
     answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
 
-    await signaling.send(pc.localDescription)
+    # In ra kiểm tra
+    print("Original answer SDP:\n", answer.sdp)
 
-    await asyncio.sleep(99999)
+    # Replace actpass -> passive
+    sdp = answer.sdp.replace("a=setup:actpass", "a=setup:passive")
+    modified_answer = RTCSessionDescription(sdp=sdp, type=answer.type)
+
+    await pc.setLocalDescription(modified_answer)
+    await signaling.send(modified_answer.sdp)
 
 
+
+    await asyncio.Future()  # giữ server chạy
 
 def handle_remote_input(input_data):
     if input_data == "w":
         pyautogui.press('w')
     elif input_data == "left_click":
         pyautogui.click()
-
-def receive_input():
-    try:
-        with open(signaling.input_file, "r") as f:
-            data = f.read()
-        with open(signaling.input_file, "w") as f:
-            f.write("")
-        return data.strip()
-    except:
-        return ""
 
 if __name__ == "__main__":
     asyncio.run(run_server())
