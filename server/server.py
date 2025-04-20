@@ -31,29 +31,31 @@ async def run_server():
     pc = RTCPeerConnection()
     pc.addTrack(ScreenTrack())
 
-    print("[SERVER] Waiting for offer from client...")
     offer_sdp = await signaling.receive()
     offer = RTCSessionDescription(sdp=offer_sdp, type="offer")
     await pc.setRemoteDescription(offer)
-
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 
-    # Chỉnh sửa SDP cho đúng chuẩn answer
+    # Lấy SDP string từ localDescription
     answer_sdp = pc.localDescription.sdp
-    answer_sdp = answer_sdp.replace("a=setup:actpass", "a=setup:passive")
 
-    # Gửi sdp string về client
+    # Fix đoạn setup actpass thành passive
+    if "a=setup:actpass" in answer_sdp:
+        answer_sdp = answer_sdp.replace("a=setup:actpass", "a=setup:passive")
+        print("[SIGNAL] Patched DTLS setup attribute to 'passive'")
+    else:
+        print("[SIGNAL] Warning: setup attribute not found in SDP!")
+
     await signaling.send(answer_sdp)
 
-
-    print("[SERVER] Connection established, streaming...")
-
+    print("Server is running...")
     while True:
         input_data = receive_input()
         if input_data:
             handle_remote_input(input_data)
         await asyncio.sleep(0.01)
+
 
 def handle_remote_input(input_data):
     if input_data == "w":
